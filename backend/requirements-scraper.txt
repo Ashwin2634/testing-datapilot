@@ -1,7 +1,7 @@
-curl_cffi>=0.7.0
 patchright>=1.48.0
+tenacity>=8.3.0
+curl_cffi>=0.7.0
 playwright>=1.48.0
 selectolax>=0.3.21
 extruct>=0.17.0
 pydantic>=2.7.0
-tenacity>=8.3.0

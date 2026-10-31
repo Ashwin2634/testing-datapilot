@@ -1,14 +1,15 @@
+import json
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class ProductData(BaseModel):
-    model_config = {"protected_namespaces": ()}
+    # Silences Pydantic warning about field "model_number" starting with "model_"
+    model_config = ConfigDict(protected_namespaces=())
 
     url: str
-
     merchant: str
-    status: str = "success"  # "success" or "failed"
-    engine_used: str = "http"  # "http" or "browser"
+    status: str = "success"       # "success" or "failed"
+    engine_used: str = "http"     # "http" or "browser"
     title: Optional[str] = None
     brand: Optional[str] = None
     price: Optional[float] = None
@@ -27,8 +28,7 @@ class ProductData(BaseModel):
     error_message: Optional[str] = None
 
     def to_excel_row(self) -> Dict[str, Any]:
-        """Flattens nested lists/dicts into strings so Pandas/OpenPyXL can write directly to Excel."""
-        import json
+        """Flattens nested lists/dicts into clean strings for Pandas/OpenPyXL Excel export."""
         return {
             "URL": self.url,
             "Merchant": self.merchant,

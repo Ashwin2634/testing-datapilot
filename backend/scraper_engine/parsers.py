@@ -2,11 +2,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional
 import extruct
-try:
-    from selectolax.lexbor import LexborHTMLParser as HTMLParser
-except ImportError:
-    from selectolax.parser import HTMLParser
-
+from selectolax.lexbor import LexborHTMLParser as HTMLParser
 from .models import ProductData
 from .config import ScraperConfig
 
@@ -26,7 +22,6 @@ class ParsingLayer:
         # 2. EXTRACT PAGE STATES (__NEXT_DATA__, Apollo, Preloaded State)
         page_state = cls._extract_page_states(tree, html)
 
-        # Initialize unified model
         product = ProductData(
             url=url,
             merchant=merchant,
@@ -35,10 +30,10 @@ class ParsingLayer:
             raw_page_state=page_state,
         )
 
-        # 3. POPULATE FROM JSON-LD PRODUCT SCHEMA (Covers BestBuy, HomeDepot, Lowes, Ace, HarborFreight, TractorSupply, NorthernTool, Costco)
+        # 3. POPULATE FROM JSON-LD PRODUCT SCHEMA
         cls._populate_from_json_ld(product, json_ld_list)
 
-        # 4. POPULATE FROM PAGE STATE (Walmart __NEXT_DATA__, BestBuy/Lowes state fallbacks)
+        # 4. POPULATE FROM PAGE STATE (Walmart __NEXT_DATA__, etc.)
         cls._populate_from_page_state(product, page_state, merchant)
 
         # 5. MERCHANT-SPECIFIC DOM FALLBACKS (Amazon, Menards, & missing fields)
@@ -140,7 +135,6 @@ class ParsingLayer:
 
     @classmethod
     def _populate_from_page_state(cls, product: ProductData, state: Dict[str, Any], merchant: str):
-        # Walmart specific __NEXT_DATA__ parser
         if "walmart.com" in merchant and "__NEXT_DATA__" in state:
             try:
                 apollo = (
@@ -171,7 +165,7 @@ class ParsingLayer:
     def _populate_from_dom(
         cls, product: ProductData, tree: HTMLParser, merchant: str, og_list: List[Dict[str, Any]]
     ):
-        # 1. Amazon DOM Parser (Amazon uses custom HTML rather than standard JSON-LD)
+        # 1. Amazon DOM Parser
         if "amazon.com" in merchant:
             product.title = product.title or cls._text(tree, "#productTitle")
             product.brand = product.brand or cls._text(tree, "#bylineInfo")
@@ -192,7 +186,6 @@ class ParsingLayer:
             if rating_str and product.rating is None:
                 product.rating = cls._to_float(rating_str.split("out of")[0])
 
-            # Extract ASIN & Product Details Table
             for row in tree.css("#productDetails_techSpec_section_1 tr, #detailBullets_feature_div li"):
                 text = row.text(separator=" ", strip=True)
                 if ":" in text:
@@ -209,7 +202,7 @@ class ParsingLayer:
             if price_str and product.price is None:
                 product.price = cls._to_float(price_str)
 
-        # 3. Universal OpenGraph & HTML Tag Fallbacks for all 11 sites
+        # 3. Universal OpenGraph & HTML Tag Fallbacks
         if og_list and isinstance(og_list[0], dict):
             og = og_list[0]
             product.title = product.title or og.get("og:title")
@@ -222,7 +215,6 @@ class ParsingLayer:
         if not product.title:
             product.title = cls._text(tree, "h1") or cls._text(tree, "title")
 
-        # Deduplicate images
         product.image_urls = list(dict.fromkeys([img for img in product.image_urls if img]))
 
     @staticmethod
